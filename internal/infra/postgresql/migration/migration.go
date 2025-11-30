@@ -1,25 +1,20 @@
-package bootstrap
+package main
 
 import (
 	"fmt"
 	"log"
 	"os"
-	"sistem-buku/internal/app/book/interface/rest"
-	"sistem-buku/internal/app/book/repository"
-	"sistem-buku/internal/app/book/usecase"
+	"sistem-buku/internal/domain/entity"
 	"sistem-buku/internal/infra/postgresql"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 )
 
-func Start() {
+func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
-	app := fiber.New()
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=require",
 		os.Getenv("DB_HOST"),
@@ -33,10 +28,12 @@ func Start() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	bookRepo := repository.NewBookRepository(db)
-	bookUsecase := usecase.NewBookUsecase(bookRepo)
+	migrator := db.Migrator()
 
-	rest.NewBookHandler(app, bookUsecase)
-
-	app.Listen(":3000")
+	err = migrator.AutoMigrate(
+		entity.Book{},
+	)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
 }
